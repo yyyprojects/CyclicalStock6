@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>An Interactive Guide to Cyclical Stocks</title>
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The SPA uses a non-linear, thematic structure with a sticky top navigation to guide users through five key learning zones: 1) A core 'Economic Cycle Simulator' to interactively demonstrate performance, 2) A 'Cyclical vs. Defensive' side-by-side comparison for clarity, 3) An 'Explore the Sectors' tabbed view for organized deep dives, 4) A 'Key Drivers' dashboard for influencing factors, and 5) An 'Investor's Playbook' for actionable strategies. This structure was chosen to transform the dense report into an engaging, task-oriented learning path, moving from foundational concepts to practical application, which is more intuitive for a beginner than a linear report format. -->
+    <!-- Visualization & Content Choices: Report Info: Economic cycle impact on stocks -> Goal: Demonstrate relationship -> Viz: Interactive Line Chart (Chart.js) -> Interaction: User selects cycle phase to update chart and text -> Justification: Active learning is more effective than passive reading. Report Info: Sector examples -> Goal: Organize info -> Viz: Tabbed Interface (HTML/JS) -> Interaction: Click tabs to reveal sector details -> Justification: Prevents information overload. Report Info: Cyclical vs. Defensive traits -> Goal: Compare -> Viz: Two-column layout with icons (HTML/CSS) -> Justification: Clear, direct comparison. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF6;
+            color: #403F3E;
+            scroll-behavior: smooth;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #D9A48F;
+            border-bottom-color: #D9A48F;
+        }
+        .control-btn.active {
+            background-color: #A3B1C6;
+            color: #FDFBF6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .tab-btn.active {
+            background-color: #403F3E;
+            color: #FDFBF6;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header id="header" class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="text-xl font-bold text-gray-800">Cyclical Stocks 101</div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#simulator" class="nav-link pb-1">The Cycle</a>
+                <a href="#comparison" class="nav-link pb-1">Comparison</a>
+                <a href="#sectors" class="nav-link pb-1">Sectors</a>
+                <a href="#drivers" class="nav-link pb-1">Drivers</a>
+                <a href="#playbook" class="nav-link pb-1">Playbook</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="py-20 md:py-32 bg-stone-100">
+            <div class="container mx-auto px-6 text-center">
+                <h1 class="text-4xl md:text-6xl font-bold text-gray-800 mb-4">What is a Cyclical Stock?</h1>
+                <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">In simple terms, it's a stock whose price is affected by the "ups and downs" of the overall economy. Think of things you buy when you feel good about your finances—like a new car or a vacation. Companies that sell these items are often cyclical.</p>
+            </div>
+        </section>
+
+        <section id="simulator" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-3">The Economic Cycle Simulator</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">The economy moves in cycles, and so do cyclical stocks. Select a stage of the U.S. economic cycle below to see how cyclical stocks typically perform compared to their "defensive" counterparts, which sell essential goods like food and utilities.</p>
+                </div>
+
+                <div class="flex justify-center flex-wrap gap-3 mb-8">
+                    <button class="control-btn px-6 py-2 rounded-full font-semibold bg-white shadow-md transition-all duration-300" data-phase="expansion">📈 Expansion</button>
+                    <button class="control-btn px-6 py-2 rounded-full font-semibold bg-white shadow-md transition-all duration-300" data-phase="peak">⛰️ Peak</button>
+                    <button class="control-btn px-6 py-2 rounded-full font-semibold bg-white shadow-md transition-all duration-300" data-phase="contraction">📉 Contraction</button>
+                    <button class="control-btn px-6 py-2 rounded-full font-semibold bg-white shadow-md transition-all duration-300" data-phase="trough"> vực Trough</button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <div class="chart-container mb-6">
+                        <canvas id="cycleChart"></canvas>
+                    </div>
+                    <div id="cycle-explanation" class="text-center transition-opacity duration-500">
+                        <h3 id="explanation-title" class="text-2xl font-bold mb-2 text-gray-800"></h3>
+                        <p id="explanation-text" class="text-gray-600 max-w-2xl mx-auto"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison" class="py-16 md:py-24 bg-stone-100">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-3">Cyclical vs. Defensive Stocks</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">Not all stocks behave the same way. Understanding the key differences between cyclical and defensive stocks is fundamental to building a balanced investment portfolio. Here's a head-to-head comparison.</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+                    <div class="bg-white p-8 rounded-xl shadow-lg border-t-4 border-blue-400">
+                        <h3 class="text-2xl font-bold mb-4 text-blue-500">Cyclical Stocks</h3>
+                        <ul class="space-y-4 text-gray-700">
+                            <li class="flex items-start"><span class="text-2xl mr-3">🎢</span><div><strong class="font-semibold">High Volatility:</strong> Prices swing significantly with the economy. High risk, high potential reward.</div></li>
+                            <li class="flex items-start"><span class="text-2xl mr-3">💰</span><div><strong class="font-semibold">Non-Essential Goods:</strong> Sells "wants" like cars, vacations, and luxury items.</div></li>
+                            <li class="flex items-start"><span class="text-2xl mr-3">📈</span><div><strong class="font-semibold">Performs Well in Expansion:</strong> Thrives when the economy is strong and people are spending.</div></li>
+                            <li class="flex items-start"><span class="text-2xl mr-3">⚡</span><div><strong class="font-semibold">High Beta (>1):</strong> Tends to be more volatile than the overall market.</div></li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow-lg border-t-4 border-green-400">
+                        <h3 class="text-2xl font-bold mb-4 text-green-500">Defensive Stocks</h3>
+                        <ul class="space-y-4 text-gray-700">
+                            <li class="flex items-start"><span class="text-2xl mr-3">🛡️</span><div><strong class="font-semibold">Low Volatility:</strong> Prices are more stable regardless of the economic climate.</div></li>
+                            <li class="flex items-start"><span class="text-2xl mr-3">🍞</span><div><strong class="font-semibold">Essential Goods:</strong> Sells "needs" like food, electricity, and healthcare.</div></li>
+                            <li class="flex items-start"><span class="text-2xl mr-3">📉</span><div><strong class="font-semibold">Stable in Contraction:</strong> Provides a safe haven when the economy is weak.</div></li>
+                            <li class="flex items-start"><span class="text-2xl mr-3">⚖️</span><div><strong class="font-semibold">Low Beta (<1):</strong> Tends to be less volatile than the overall market.</div></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="sectors" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-3">Explore the Cyclical Sectors</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">Cyclical stocks aren't just one category. They span several major sectors of the U.S. economy. Click on a sector below to learn about its key industries and see examples of well-known American companies.</p>
+                </div>
+                <div class="max-w-5xl mx-auto">
+                    <div class="flex flex-wrap justify-center border-b border-gray-200 mb-8">
+                        <button class="tab-btn text-sm md:text-base px-4 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-800 transition" data-tab="discretionary">🛍️ Consumer Discretionary</button>
+                        <button class="tab-btn text-sm md:text-base px-4 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-800 transition" data-tab="industrials">🏭 Industrials</button>
+                        <button class="tab-btn text-sm md:text-base px-4 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-800 transition" data-tab="technology">💻 Technology</button>
+                        <button class="tab-btn text-sm md:text-base px-4 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-800 transition" data-tab="financials">🏦 Financials</button>
+                        <button class="tab-btn text-sm md:text-base px-4 py-3 font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-800 transition" data-tab="materials">⛏️ Materials</button>
+                    </div>
+                    <div id="sector-content" class="bg-white rounded-xl shadow-lg p-8 min-h-[20rem] transition-opacity duration-500">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="drivers" class="py-16 md:py-24 bg-stone-100">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-3">What Drives Cyclical Stocks?</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">The performance of cyclical stocks is tied to key economic signals. Understanding these drivers helps investors anticipate potential shifts in the market. Here are some of the most important factors.</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="font-bold text-xl mb-2">📊 GDP Growth</h3>
+                        <p class="text-gray-600">Gross Domestic Product (GDP) is the broadest measure of economic health. Strong GDP growth means a healthy economy, which boosts sales for cyclical companies.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="font-bold text-xl mb-2">💼 Employment Rates</h3>
+                        <p class="text-gray-600">When more people have jobs, they have more money to spend on non-essential items. Low unemployment is a strong positive signal for cyclical stocks.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="font-bold text-xl mb-2">💲 Interest Rates</h3>
+                        <p class="text-gray-600">Low interest rates make it cheaper to borrow money for big purchases like cars and homes, stimulating demand for cyclical goods and services.</p>
+                    </div>
+                     <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="font-bold text-xl mb-2">😊 Consumer Confidence</h3>
+                        <p class="text-gray-600">This measures how optimistic consumers are about their financial situation. High confidence leads to more spending on discretionary items.</p>
+                    </div>
+                     <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="font-bold text-xl mb-2">📈 Inflation</h3>
+                        <p class="text-gray-600">Inflation can be a double-edged sword. While it can erode purchasing power, some materials-based cyclicals may benefit from rising commodity prices.</p>
+                    </div>
+                     <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="font-bold text-xl mb-2">🌍 Global Conditions</h3>
+                        <p class="text-gray-600">In our interconnected world, economic health in other major countries can impact U.S. cyclical companies that rely on exports or global supply chains.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="playbook" class="py-16 md:py-24">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-3">The Investor's Playbook</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">Investing in cyclical stocks requires a specific mindset and strategy. Here are three key principles to consider. Click each one to learn more.</p>
+                </div>
+                <div class="max-w-3xl mx-auto space-y-4">
+                    <div class="accordion-item bg-white rounded-xl shadow-lg">
+                        <button class="accordion-header w-full text-left p-6 flex justify-between items-center">
+                            <h3 class="text-xl font-semibold">⏳ Time the Cycle</h3>
+                            <span class="text-2xl font-light transition-transform duration-300 transform">+</span>
+                        </button>
+                        <div class="accordion-content px-6">
+                            <p class="pb-6 text-gray-600">The classic strategy is to "buy low, sell high." This means buying cyclical stocks during an economic trough (when things look bleak but a recovery is anticipated) and selling near the peak. This is challenging, as the stock market often moves *before* the economy does. It requires looking ahead, not just at current news.</p>
+                        </div>
+                    </div>
+                    <div class="accordion-item bg-white rounded-xl shadow-lg">
+                        <button class="accordion-header w-full text-left p-6 flex justify-between items-center">
+                            <h3 class="text-xl font-semibold">⚖️ Manage Your Risk</h3>
+                            <span class="text-2xl font-light transition-transform duration-300 transform">+</span>
+                        </button>
+                        <div class="accordion-content px-6">
+                            <p class="pb-6 text-gray-600">Because they are volatile, it's risky to have a portfolio made up entirely of cyclical stocks. Diversification is key. Balancing your investments with non-cyclical (defensive) stocks can help protect your portfolio during economic downturns and provide more stable returns over the long term.</p>
+                        </div>
+                    </div>
+                    <div class="accordion-item bg-white rounded-xl shadow-lg">
+                        <button class="accordion-header w-full text-left p-6 flex justify-between items-center">
+                            <h3 class="text-xl font-semibold">🔭 Think Long-Term</h3>
+                            <span class="text-2xl font-light transition-transform duration-300 transform">+</span>
+                        </button>
+                        <div class="accordion-content px-6">
+                            <p class="pb-6 text-gray-600">Cyclical stocks are not for short-term, conservative investors. Their volatility can be stressful. However, for those with a long-term horizon, these stocks offer significant growth potential during economic booms. The key is having the patience to ride out the inevitable downturns.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-6 text-center">
+            <p>This interactive guide is for educational purposes only and does not constitute financial advice.</p>
+            <p class="text-sm text-gray-400 mt-2">Content synthesized from a comprehensive report on cyclical stocks.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const data = {
+                phases: {
+                    expansion: {
+                        title: '📈 Expansion Phase',
+                        text: 'The economy is growing, jobs are plentiful, and consumer confidence is high. This is prime time for cyclical stocks, as people spend more on cars, travel, and other non-essentials. They typically outperform defensive stocks during this phase.',
+                        chartData: {
+                            cyclical: [100, 115, 130, 140],
+                            defensive: [100, 102, 104, 105]
+                        }
+                    },
+                    peak: {
+                        title: '⛰️ Peak Phase',
+                        text: 'Economic growth slows down. While business is still good, investors start to worry a downturn is coming. Cyclical stock prices may level off or begin to decline as the market anticipates lower future profits.',
+                        chartData: {
+                            cyclical: [140, 142, 140, 135],
+                            defensive: [105, 106, 107, 106]
+                        }
+                    },
+                    contraction: {
+                        title: '📉 Contraction (Recession) Phase',
+                        text: 'The economy shrinks, unemployment may rise, and consumers cut back on spending, starting with non-essentials. Cyclical stocks are hit hard, with sharp declines in sales and stock prices. Defensive stocks tend to hold their value better.',
+                        chartData: {
+                            cyclical: [135, 110, 95, 85],
+                            defensive: [106, 105, 108, 110]
+                        }
+                    },
+                    trough: {
+                        title: ' vực Trough (Recovery) Phase',
+                        text: 'The economy hits bottom. It looks bleak, but this is often when smart investors see opportunity. Cyclical stocks are cheap, and as the market anticipates a recovery, they may begin to rise before the broader economy shows clear signs of improvement.',
+                        chartData: {
+                            cyclical: [85, 90, 98, 100],
+                            defensive: [110, 108, 105, 100]
+                        }
+                    }
+                },
+                sectors: {
+                    discretionary: {
+                        title: '🛍️ Consumer Discretionary',
+                        description: 'This sector is the classic example of cyclicality. It includes companies selling non-essential goods and services that consumers buy when they have extra cash and confidence.',
+                        industries: ['Automotive', 'Travel & Entertainment', 'Luxury Goods', 'Restaurants'],
+                        examples: ['Ford', 'General Motors', 'Tesla', 'The Walt Disney Company', 'Airbnb', 'Texas Roadhouse']
+                    },
+                    industrials: {
+                        title: '🏭 Industrials',
+                        description: 'These companies are involved in manufacturing, construction, and transportation. They thrive when the economy is expanding and businesses are investing in new equipment, buildings, and infrastructure.',
+                        industries: ['Aerospace & Defense', 'Construction Equipment', 'Steel Production'],
+                        examples: ['Boeing', 'Caterpillar', 'Nucor']
+                    },
+                    technology: {
+                        title: '💻 Technology',
+                        description: 'While some tech is stable, many parts are cyclical. Demand for consumer electronics (new phones, laptops) and enterprise software can fluctuate with consumer and business spending cycles.',
+                        industries: ['Semiconductors', 'Consumer Electronics', 'Enterprise Software'],
+                        examples: ['Intel', 'Apple', 'Microsoft']
+                    },
+                    financials: {
+                        title: '🏦 Financials',
+                        description: 'Banks, insurance companies, and credit services are deeply tied to the economy. Their profits rise and fall with interest rates, loan demand, and overall economic activity.',
+                        industries: ['Banking', 'Insurance', 'Credit Services'],
+                        examples: ['JPMorgan Chase']
+                    },
+                    materials: {
+                        title: '⛏️ Materials',
+                        description: 'This sector includes companies that produce raw materials like oil, metals, and chemicals. Demand for these commodities is high when manufacturing and construction are booming.',
+                        industries: ['Metals & Mining', 'Chemicals', 'Oil & Gas'],
+                        examples: ['ExxonMobil']
+                    }
+                }
+            };
+
+            const ctx = document.getElementById('cycleChart').getContext('2d');
+            let cycleChart;
+
+            const explanationTitle = document.getElementById('explanation-title');
+            const explanationText = document.getElementById('explanation-text');
+            const controlButtons = document.querySelectorAll('.control-btn');
+
+            function createChart(chartData) {
+                if (cycleChart) {
+                    cycleChart.destroy();
+                }
+                cycleChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Start', 'Mid', 'End', 'Next'],
+                        datasets: [{
+                            label: 'Cyclical Stocks',
+                            data: chartData.cyclical,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }, {
+                            label: 'Defensive Stocks',
+                            data: chartData.defensive,
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'Relative Performance'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Time within Phase'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateSimulator(phase) {
+                const phaseData = data.phases[phase];
+                explanationTitle.textContent = phaseData.title;
+                explanationText.textContent = phaseData.text;
+                createChart(phaseData.chartData);
+
+                controlButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.phase === phase);
+                });
+            }
+
+            controlButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    updateSimulator(button.dataset.phase);
+                });
+            });
+
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const sectorContent = document.getElementById('sector-content');
+
+            function updateSectors(tab) {
+                const sectorData = data.sectors[tab];
+                sectorContent.style.opacity = 0;
+                setTimeout(() => {
+                    sectorContent.innerHTML = `
+                        <h3 class="text-2xl font-bold mb-4">${sectorData.title}</h3>
+                        <p class="text-gray-600 mb-6">${sectorData.description}</p>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="font-semibold text-lg mb-2">Key Industries:</h4>
+                                <ul class="list-disc list-inside text-gray-600 space-y-1">
+                                    ${sectorData.industries.map(i => `<li>${i}</li>`).join('')}
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg mb-2">U.S. Company Examples:</h4>
+                                <ul class="list-disc list-inside text-gray-600 space-y-1">
+                                    ${sectorData.examples.map(e => `<li>${e}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                    sectorContent.style.opacity = 1;
+                }, 300);
+
+
+                tabButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tab === tab);
+                });
+            }
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    updateSectors(button.dataset.tab);
+                });
+            });
+
+            const accordionItems = document.querySelectorAll('.accordion-item');
+            accordionItems.forEach(item => {
+                const header = item.querySelector('.accordion-header');
+                const content = item.querySelector('.accordion-content');
+                const icon = header.querySelector('span');
+
+                header.addEventListener('click', () => {
+                    const isOpen = content.style.maxHeight;
+
+                    accordionItems.forEach(otherItem => {
+                        otherItem.querySelector('.accordion-content').style.maxHeight = null;
+                        otherItem.querySelector('.accordion-header span').style.transform = 'rotate(0deg)';
+                        otherItem.querySelector('.accordion-header span').textContent = '+';
+                    });
+
+                    if (!isOpen) {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        icon.style.transform = 'rotate(45deg)';
+                        icon.textContent = '×';
+                    }
+                });
+            });
+            
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('main section');
+
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 68) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').includes(current)) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+
+            updateSimulator('expansion');
+            updateSectors('discretionary');
+        });
+    </script>
+</body>
+</html>
